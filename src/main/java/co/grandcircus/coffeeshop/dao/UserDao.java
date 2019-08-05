@@ -1,51 +1,50 @@
-package co.grandcircus.coffeeshop;
+package co.grandcircus.coffeeshop.dao;
 
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
+import javax.transaction.Transactional;
+
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
-import co.grandcircus.coffeeshop.User;
+import co.grandcircus.coffeeshop.entity.Product;
+import co.grandcircus.coffeeshop.entity.User;
 
 @Repository
+@Transactional
 public class UserDao {
 	
-	@Autowired
-	private JdbcTemplate jdbc;
+	@PersistenceContext
+	EntityManager em;
 	
 	public List<User> findAll() {
 		// BeanPropertyRowMapper uses the rows from the SQL result create
 		// new User objects and fill in the values by calling the setters.
 		// Use .query for SQL SELECT statements.
-		String sql = "SELECT * FROM User";
-		return jdbc.query(sql, new BeanPropertyRowMapper<>(User.class));
+		return em.createQuery("FROM Users", User.class).getResultList();
 	}
 	
 	public User findById(Long id) {
 		// The last parameters of .query let us specify values for the (?) parameters in our SQL statement.
 		// While .query returns a list, .queryForObject assumes only one result. 
 		// If nothing matched, match will be null.
-		String sql = "SELECT * FROM User WHERE id = ?";
-		return jdbc.queryForObject(sql, new BeanPropertyRowMapper<>(User.class), id);
+		return em.find(User.class, id);
 	}
 	
 	public void update(User User) {
 		// Use .update for SQL INSERT, UPDATE, and DELETE
 		// All the parameters after the first specify values to fill in the ?s in the SQL.
-		String sql = "UPDATE User SET name=?, username=?, password=? WHERE id=?";
-		jdbc.update(sql, User.getName(), User.getUsername(), User.getPassword(), User.getId());
-		
+		em.merge(User);
 	}
 	
 	public void create(User User) {
-		String sql = "INSERT INTO Users (id, name, username, password) VALUES (?, ?, ?, ?)";
-		jdbc.update(sql, User.getId(), User.getName(), User.getUsername(), User.getPassword());
+		em.persist(User);
 	}
 	
 	public void delete(Long id) {
-		String sql = "DELETE FROM User WHERE id = ?";
-		jdbc.update(sql, id);
+		User user = em.getReference(User.class, id);
+		em.remove(user);
 	}
 }
